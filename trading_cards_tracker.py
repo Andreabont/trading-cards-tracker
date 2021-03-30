@@ -141,7 +141,7 @@ def read_card(env,  name):
         },
         {
             'label': 'Posizione carta',
-            'value': _get_card_position(name, env['rows_in_page'], env['columns_in_page'])
+            'value': _get_card_position(int(name) + env['name_offset'], env['rows_in_page'], env['columns_in_page'])
         }
     ]
 
@@ -232,6 +232,7 @@ if __name__ == '__main__':
     env['total_cards'] = int(config_parser['collection']['total_cards'])
     env['rows_in_page'] = int(config_parser['collection']['rows_in_page'])
     env['columns_in_page'] = int(config_parser['collection']['columns_in_page'])
+    env['name_offset'] = int(config_parser['collection']['name_offset'])
     env['read_only'] = bool(args.readonly)
             
     try:

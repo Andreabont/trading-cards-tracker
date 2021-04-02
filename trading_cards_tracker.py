@@ -4,6 +4,7 @@ import sys
 import sqlite3
 import argparse
 import configparser
+import csv
 from sqlite3 import Error
 
 # Queries
@@ -11,6 +12,8 @@ _sql_create_main_table     = """ CREATE TABLE IF NOT EXISTS main (
                                     name integer PRIMARY KEY,
                                     count integer NOT NULL DEFAULT 0
                                ); """
+                               
+_sql_export_all            = """ SELECT name, count FROM main; """
                             
 _sql_count_main_table      = """ SELECT COUNT(*) FROM main; """
 
@@ -69,6 +72,11 @@ def _get_list(db, query, *args):
         list.append(row[0])
     return list
 
+def _get_select(db, query, *args):
+    cursor = db.cursor()
+    cursor.execute(query, args)
+    return cursor.fetchall()
+
 def _set_data(db, query, *args):
     cursor = db.cursor()
     cursor.execute(query, args)
@@ -126,6 +134,31 @@ def add_card(env, name):
         }
     ]
 
+def delete_card(env, name):
+    if env['read_only']:
+        return [
+        {
+            'label': 'Errore',
+            'value': 'Modalità sola lettura'
+        }
+    ]
+    if int(name) <= 0 or int(name) > env['total_cards']:
+        return [
+        {
+            'label': 'Errore',
+            'value': 'Fuori dal range 0 - %d' % env['total_cards']
+        }
+    ]
+    count = _get_count(env['db'], _sql_count_card, name)
+    if count <= 0:
+        return [
+        {
+            'label': 'Errore',
+            'value': 'Questa carta non è presente'
+        }
+    ]
+    _set_data(env['db'], _sql_insert_count_card, count-1, name)
+
 def read_card(env,  name):
     if int(name) <= 0 or int(name) > env['total_cards']:
         return [
@@ -180,12 +213,33 @@ def list_cards(env):
         }
     ]
 
+def export_csv(env, filename):
+    with open(filename, 'w') as csvfile:
+        csvwriter = csv.DictWriter(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL, fieldnames=['name','count'])
+        csvwriter.writeheader()
+        for line in _get_select(env['db'], _sql_export_all):
+            csvwriter.writerow({
+                'name': line[0],
+                'count': line[1]
+            })
+
 # Menù
 _menu_options = {
     
     'i' : {
         'label': 'Inserire una carta',
         'function': add_card,
+        'args': [
+            {
+                'name': 'name',
+                'label': 'Nome carta'
+            }
+        ]
+    },
+            
+    'd' : {
+        'label': 'Eliminare una carta',
+        'function': delete_card,
         'args': [
             {
                 'name': 'name',
@@ -213,7 +267,18 @@ _menu_options = {
     'l': {
         'label': 'Liste',
         'function': list_cards
-    }
+    },
+    
+    'e': {
+        'label': 'Esporta CSV lista',
+        'function': export_csv,
+        'args': [
+            {
+                'name': 'filename',
+                'label': 'Nome file'
+            }
+        ]
+    },
         
 }
 

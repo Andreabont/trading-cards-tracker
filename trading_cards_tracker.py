@@ -131,6 +131,10 @@ def add_card(env, name):
         {
             'label': 'Nuova',
             'value': 'Si' if (count == 0) else 'No'
+        },
+        {
+            'label': 'Posizione carta',
+            'value': _get_card_position(int(name) + env['name_offset'], env['rows_in_page'], env['columns_in_page'])
         }
     ]
 
